@@ -1,0 +1,227 @@
+---
+title: "Ev1Mod5 Los peces y el mercurio C_IACD_Estadística"
+author: "A01750164 | Paul Martín García Morfín"
+date: "2022-11-30"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# El problema
+
+La contaminación por mercurio de peces comestibles en el agua dulce es una amenaza directa contra nuestra salud. Se llevó a cabo un estudio reciente en 53 lagos de Florida con el fin de examinar los factores que influían en el nivel de contaminación por mercurio. Las variables que se midieron se encuentran en el archivo mercurio.csv  y su descripción es la siguiente: 
+
+- X1 = número de identificación del lago
+- X2 = nombre del lago analizado
+- X3 = alcalinidad (mg/l de carbonato de calcio)
+- X4 = PH
+- X5 = calcio (mg/l)
+- X6 = clorofila (mg/l)
+- X7 = concentración media de mercurio (parte por millón) en el tejido muscular del grupo de peces estudiados en cada lago
+- X8 = número de peces estudiados en el lago
+- X9 = mínimo de la concentración de mercurio en cada grupo de peces
+- X10 = máximo de la concentración de mercurio en cada grupo de peces
+- X11 = estimación (mediante regresión) de la concentración de mercurio en el pez de 3 años (o promedio de mercurio cuando la edad no está disponible)
+- X12 = indicador de la edad de los peces (0: jóvenes; 1: maduros)
+
+
+```{r}
+names = c("ID", "Lago", "Alcalinidad", "PH", "Calcio", "Clorofila", "Media", "Peces", "Mínimo", "Máximo", "Estimación", "Edad")
+M = read.csv("Data/mercurio.csv", col.names=names)
+head(M, 10)
+```
+
+```{r}
+library(dplyr)
+glimpse(M)
+```
+Tenemos 12 variables con 53 observaciones cada una, de las cuales hay:
+
+- 9 variables numéricas: Alcalinidad, PH, Calcio, Clorofila, Media, Peces, Mínimo, Máximo, Estimación
+- 3 variables categóricas: ID, Lago, Edad
+
+# Análisis de normalidad
+
+El objetivo de este análisis es identificar variables normales. 
+
+Recordemos:
+
+Hipótesis
+- H0: La muestra proviene de una distribución normal.
+- H1: La muestra no proviene de una distribución normal.
+
+Nivel de significancia
+- El nivel de significancia que se trabajará es de 0.05 -> $\alpha=0.05$
+
+Criterio de decisión
+- Si $P<\alpha$ Se rechaza H0
+- Si $P>=\alpha$ No se rechaza H0
+
+Variables continuas a analizar: Alcalinidad, PH, Calcio, Clorofila, Media de mercurio, Mínimo de mercurio, Máximo de mercurio, Estimación de mercurio. 
+
+```{r}
+# Variables continuas
+MCont = M[, c(-1, -2, -8, -12)]
+head(MCont, 10)
+```
+
+## A. Pruebas de normalidad para identificar variables normales y detectar posible normalidad multivariada
+
+### Prueba de Anderson-Darling
+
+```{r}
+library (nortest)
+# Test de normalidad: Anderson-Darling
+ad.test(MCont$Alcalinidad)
+ad.test(MCont$PH)
+ad.test(MCont$Calcio)
+ad.test(MCont$Clorofila)
+ad.test(MCont$Media)
+ad.test(MCont$Mínimo)
+ad.test(MCont$Máximo)
+ad.test(MCont$Estimación)
+```
+
+- Alcalinidad: Se rechaza H0. La muestra no proviene de una distribución normal.
+- PH: Se acepta H0. La muestra proviene de una distribución normal.
+- Calcio: Se rechaza H0. La muestra no proviene de una distribución normal.
+- Clorofila: Se rechaza H0. La muestra no proviene de una distribución normal.
+- Media: Se rechaza H0. La muestra no proviene de una distribución normal.
+- Mínimo: Se rechaza H0. La muestra no proviene de una distribución normal.
+- Máximo: Se acepta H0. La muestra proviene de una distribución normal.
+- Estimación: Se rechaza H0. La muestra no proviene de una distribución normal.
+
+### Prueba de Mardia
+
+```{r}
+library(MVN)
+# Test de multinormalidad: Método sesgo y kurtosis de Mardia
+mvn(MCont, subset=NULL, mvn="mardia", covariance=FALSE, showOutliers=FALSE)
+```
+
+Se comprobaron los test de normalidad en los que se utilizó el método de Anderson-Darling, llegando al mismo resultado que anteriormente. Por otro lado, con este grupo de variables no se detectó multinormalidad, según el test de Mardia, los métodos de sesgo y kurtosis.
+
+## B. Pruebas de normalidad en variables con distribución normal, interpretación de resultados, análisis de sesgo y curtosis
+
+```{r}
+# Variables con distribución normal
+MNorm = MCont[, c(-1, -3, -4, -5, -6, -8)]
+
+# Test de multinormalidad: Método sesgo y kurtosis de Mardia
+mvn(MNorm, subset=NULL, mvn="mardia", covariance=FALSE, showOutliers=TRUE)
+```
+
+Se puede notar que en este caso sí existe multinormalidad para estas dos variables (PH y Concentración máxima de mercurio) según la prueba de Mardia así como con los métodos de sesgo y kurtosis. 
+ 
+Los datos de PH son moderadamente simétricos, ya que presentan un ligero sesgo a la izquierda, con baja kurtosis, teniendo una forma platicúrtica.
+La variable de concentración máxima de mercurio tiene una distribución moderadamente sesgada a la derecha, con baja kurtosis y, por tanto, una forma platicúrtica. 
+Parece que no hay presencia de datos atípicos, pero esto se analizará a detalle más adelante. 
+
+## C. Gráficas de normal multivariada
+
+```{r}
+# Contornos de la normal bivariada
+mvn(MNorm, mvnTest="mardia", multivariatePlot="persp")
+mvn(MNorm, mvnTest="mardia", multivariatePlot="contour") 
+```
+
+El diagrama de perspectiva nos proporciona información sobre cómo se correlacionan dos variables entre sí. Cuando los datos están distribuidos normalmente, se espera obtener un gráfico tridimensional en forma de campana, lo cual sí ocurre en este caso. El gráfico de contorno es una proyección bidimensional de la gráfica de perspectiva, así que se debe observar un patrón similar, en este caso, con contornos con forma elíptica. 
+## D. Datos atípicos e influyentes en la normal multivariada (distancia de Mahalanobis y gráfico QQplot multivariado)
+
+```{r}
+p = 2 # Número de variables
+
+# Vector de medias
+X = colMeans(MNorm)
+# Matriz de covarianza
+S = cov(MNorm)
+
+# Cuadrado de la distancia de Mahalanobis
+d2M = mahalanobis(MNorm, X, S)
+# Distancia de Mahalanobis
+dM = sqrt(d2M)
+head(dM[order(dM, decreasing=TRUE)])
+
+# Multinormalidad: Test gráfico Q-Q Plot
+plot(qchisq(((1:nrow(MNorm))-1/2)/nrow(MNorm), df=p), sort(d2M))
+abline(a=0, b=1, col="red")
+
+# Datos atípicos
+boxplot(dM, ylab="Distancias de Mahalanobis")
+```
+
+Gráficamente, se puede observar que el cuadrado de la distancia de Mahalanobis se aproxima a una distribución Chi2, esto da un indicio de que la muestra pertenece a una distribución normal multivariada, sin embargo, gracias a los tests hechos anteriormente esto ya fue comprobado. 
+ 
+La distancia de Mahalanobis se refiere a la distancia entre cada punto de datos y el centro de masa. Por tanto, es cero cuando el dato se encuentra en el centro y es mayor a cero cuando se encuentra alejado. Los puntos que se encuentran muy lejos son datos atípicos. En este caso, se observa que no hay presencia de datos atípicos según el boxplot.
+
+# Análisis de de componentes principales
+
+Para este análisis se hace uso de la base de datos completa para identificar los factores principales que intervienen en el problema de la contaminación por mercurio de los peces en agua dulce. 
+
+## A. Justificación del uso de componentes principales
+
+Hacer un análisis de componentes principales es una técnica útil para el análisis exploratorio de datos, que permite visualizar de mejor forma la variación presente en un conjunto de datos con muchas variables así como hallar aquellas con un mayor peso. A continuación se muestra la matriz de correlación. 
+
+```{r}
+# Variables numéricas
+MNum = M[, c(-1, -2)]
+
+# Matriz de correlaciones
+R = cor(MNum)
+R
+```
+
+## B. Análisis de componentes principales y justificación del número de componentes principales apropiados
+
+```{r}
+# Valores y vectores propios de la matriz de correlación
+LCor = eigen(R)
+LCor
+
+# Cálculo de la proporción de varianza explicada por cada componente
+sum(LCor$values)
+sum(diag(R))
+## Método alternativo
+var_total = sum(diag(R))
+prop_var = LCor$values/var_total
+prop_var
+
+# Acumulación de los resultados anteriores
+prop_varianza_acum = cumsum(prop_var)
+cumsum(prop_var)
+```
+
+La primera componente explica el 53.61% de la varianza observada en los datos, la segunda el 12.54%, la tercera el 12.17%, la cuarta 9.09%, etc. Utilizando las primeras siete componentes se podría explicar el 98.42% de la varianza observada. Es importante mencionar que al usar la matriz de correlación, las variables son escaladas para tener una varianza unitaria.
+
+## C. Gráfico de los vectores asociados y puntuaciones de las observaciones
+
+```{r}
+library(FactoMineR)
+library(factoextra)
+library(ggplot2) 
+cp3 = PCA(MNum)
+fviz_pca_ind(cp3, col.ind="blue", addEllipses=TRUE, repel=TRUE)
+fviz_screeplot(cp3)
+fviz_contrib(cp3, choice=c("var"))
+```
+
+## D. Interpretación de resultados 
+
+La primera gráfica nos permite resumir y visualizar la información de las observaciones descritas por las variables cuantitativas interrelacionadas del conjunto de datos, de las dos primeras componentes.
+ 
+En la segunda gráfica se muestran los vectores y cómo están fijados en el origen de las principales componentes. Sus valores de proyección indican el peso que tienen en esa componente. En este caso, las tres variables con más peso en la primera componente son la Estimación, la Media y el Máximo; y para la segunda componente son la Edad y el Número de peces. 
+ 
+La primera componente se podría etiquetar como las concentraciones de mercurio, ya que las variables con mayor peso son aquellas relacionadas a medidas como media, máximo, mínimo y estimación de la concentración de mercurio. La segunda componente tiene que ver más con la cantidad de peces analizados y la madurez de estos. Por último, si se observan las demás componentes, la mayoría tiene más relación con variables como el PH, el calcio o la clorofila. 
+
+# Conclusión general
+
+Cuando se trabaja con una gran cantidad de variables se dificulta el proceso de hallar las relaciones que existen entre estas, cosa que puede ser un problema si se presenta el caso de que no haya independencia entre dichas variables, ya que es posible que estén midiendo lo mismo pero bajo distintos puntos de vista. Por ello, resulta importante reducir el número de variables y tomar aquellas que nos brinden más información, es decir, en las que haya una mayor variabilidad. 
+ 
+Existen diferentes métodos para estudiar estas relaciones, siendo uno de ellos el análisis de componentes principales, el cual ayuda a visualizar el orden de importancia de cada variable en cuanto a la variabilidad que explican. Dicho de otra forma,  el análisis de componentes principales permite visualizar de mejor forma la variación presente en un conjunto de datos con muchas variables y de esta forma hallar aquellas con un mayor peso.
+ 
+Por otro lado, en el análisis de componentes principales no se requiere de la suposición de multinormalidad de los datos, no obstante, si se presenta este caso ayuda a dar una mejor interpretación de los componentes. 
+ 
+Se llegó a la conclusión de que los principales factores son la estimación de la concentración de mercurio, la concentración media, el número de peces estudiados y la edad de estos.   Además, por la variabilidad que explican, también se puede decir que las concentraciones de calcio, clorofila y PH influyen en la concentración de mercurio de los peces.
+

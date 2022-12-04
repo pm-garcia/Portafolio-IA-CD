@@ -1,0 +1,66 @@
+---
+title: "Act1 La normal multivariada C_IACD_Estadística"
+author: "A01750164 | Paul Martín García Morfín"
+date: "2022-09-24"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# La normal multivariada
+
+1. Hallar el procedimiento para el cálculo de probabilidad de que P(X1 <= 2, X2 <= 3) con X1, X2 se distribuyen Normal con $\mu=(\mu_1=2.5,\mu_2=4)$ y $\sum=\begin{equation}\begin{bmatrix}1.2& 0\\ 0 & 2.3\\ \end{bmatrix} \end{equation}$
+
+```{r}
+x = c(2, 3)
+miu = c(2.5, 4)
+sigma = matrix(c(1.2, 0, 0, 2.3), nrow = 2)
+library(mnormt)
+pmnorm(x, miu, sigma)
+```
+
+2. Grafique la anterior distribución bivariada del problema 1.
+
+```{r}
+x = seq(-2, 5, 0.1) 
+y = seq(-2, 5, 0.1)
+f = function(x, y) dmnorm(cbind(x, y), miu, sigma)
+z = outer(x, y, f)
+#create surface plot
+persp(x, y, z, theta=-30, phi=25, expand=0.6, ticktype='detailed', col = "pink")
+```
+
+3. Grafique los contornos de la anterior distribución normal bivariada correspondiente a las alturas de  0.01, 0.03, 0.05, 0.07, 0.1
+
+```{r}
+#create contour plot
+contour(x, y, z, col = "blue", levels = c(0.01, 0.03, 0.05, 0.07, 0.1), xlim=range(x), ylim=range(y), zlim=range(z))
+```
+
+4. Aplique una prueba de normaldad bivariada a los siguientes datos (datos.csv) para un nivel de significación de 0.05
+
+```{r}
+M = read.csv("Data/datos.csv")
+p = 2 # Indica que se trata de dos variables
+
+# Vector de medias
+X = colMeans(M)
+# Matriz de covarianza
+S = cov(M)
+# Distancia de Mahalanobis
+d2M =  mahalanobis(M, X, S)
+
+# Multinormalidad Test gráfico Q-Q Plot
+plot(qchisq(((1:nrow(M)) - 1/2)/nrow(M), df=p), sort(d2M))
+abline(a=0, b=1, col="red")
+
+# Test de Multinomalidad: Método Sesgo y kurtosis de Mardia
+library(MVN)
+mvn(M, subset=NULL, mvn="mardia", covariance=FALSE, showOutliers=FALSE)
+```
+
+Las pruebas de normalidad de Anderson-Darling dan como resultado que la variable X no se distribuye como una normal, pero la variable Y sí pertenece a una normal. Sin embargo, la prueba de Mardia, junto con los métodos de sesgo y curtosis, dan como resultado que existe multinormalidad entre las variables. 

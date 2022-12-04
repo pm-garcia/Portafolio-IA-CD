@@ -1,0 +1,193 @@
+---
+title: "Ev2Mod5 Venta de televisores C_IACD_Estadística"
+author: "A01750164 | Paul Martín García Morfín"
+date: "2022-12-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Problema: Venta de televisores
+
+Usa los datos de las ventas de televisores para familiarizarte con el análisis de tendencia de una serie de tiempo:
+
+Año	              1				2				3				4			
+Trimestre	        1	2	3	4	1	2	3	4	1	2	3	4	1	2	3	4
+Ventas (miles)    4.8	4.1	6.0	6.5	5.8	5.2	6.8	7.4	6.0	5.6	7.5	7.8	6.3	5.9	8.0	8.4
+
+```{r}
+t = 1:16
+ventas = c(4.8, 4.1, 6.0, 6.5, 5.8, 5.2, 6.8, 7.4, 6.0, 5.6, 7.5, 7.8, 6.3, 5.9, 8.0, 8.4)
+```
+
+## 1. Gráfico de dispersión. Tendencia y ciclos
+
+```{r}
+plot(t, ventas, type="o", col="red", main="Ventas por trimestre")
+```
+
+Graficando los datos proporcionados, se puede observar que corresponden a una serie de tiempo no estacionaria ya que se visualiza un claro crecimiento. Cuando se pone un negocio se espera que el negocio prospere y las ventas crezcan, es normal que haya fluctuaciones en el año pero que la tendencia es que crezca. 
+
+## 2. Análisis de tendencia y estacionalidad
+
+```{r}
+N = lm(ventas~t)
+plot(t, ventas, type="l", col="red")
+abline(N, col = "blue")
+N
+text(4, 7, "ventas = 4.85 + 0.18 trimestre")
+```
+
+Se puede trazar una línea recta y observar cómo la tendencia va creciendo, sin embargo, el problema con esta tendencia es que no está tomando en cuenta la estacionalidad, que son los ciclos a lo largo del año. 
+
+### A. Descomposición de la serie en sus 3 componentes e interpretación
+
+```{r}
+x = ts(ventas, frequency=4, start(c(2016,1)))
+T = decompose(x, type="m")
+plot(T, col ="blue")
+```
+
+La primer gráfica son los valores originales observados, mientras que las otras tres son los componentes, los cuales se explican a continuación:
+
+- Tendencia: La tendencia de la serie de tiempo se caracteriza por un patrón gradual y consistente de las variaciones de la propia serie. La tendencia a largo plazo se ajusta al esquema de moverse continuamente hacía arriba. Es la línea recta encontrada. 
+
+- Variación estacional: Este componente representa la variabilidad en los datos debido a las estaciones, la cual corresponde a los movimientos de la serie que recurren año tras año en los mismos trimestres (para este caso) del año, con la misma intensidad.
+
+- Variación irregular: Se debe a factores a corto plazo que afectan a la serie de tiempo y que son imprevisibles. Son los errores, es decir, la diferencia entre lo predicho y lo esperado.
+
+## 3. Análisis del modelo lineal de la tendencia
+
+### A. Regresión lineal de la tendencia (ventas desestacionalizadas vs tiempo)
+
+```{r}
+ventas_desestacionalizadas = (T$x)/(T$seasonal)
+x2 = 1:16
+y2 = ventas_desestacionalizadas
+N2 = lm(y2~x2)
+N2
+```
+
+Las ventas desestacionalizadas son las ventas a las que ya se les quitó dos cosas: 
+
+- La irregularidad debido al azar, con los promedios móviles.
+
+- La estacionalidad, con los índices estacionales (fluctuación debido a las estaciones del año). 
+ 
+Se aplica regresión lineal simple y se obtiene la recta, cuya es y = 5.1080 + 0.1474x
+
+### B. Dibujo de la recta junto con las ventas desestacionalizadas
+
+```{r}
+plot(x2, y2, type="l")
+abline(N2, col="red")
+text(6, 7, "ventas = 5.1080 + 0.1474 trimestre")
+```
+
+Como se puede observar en la gráfica, se logró un suavizamiento de la serie diferente.  Sobre esta se trabaja la regresión lineal para encontrar la tendencia. Es importante mencionar que se usó un esquema multiplicativo (donde la tendencia se va incrementando) para este suavizamiento. 
+
+### C. Pertinencia del modelo lineal
+
+#### Significancia de β1
+
+```{r}
+summary(N2)
+```
+
+Se rechaza la hipótesis nula ya que $p<\alpha$ y podemos decir que $\beta_1$ es signfificativamente diferente de 0. 
+
+#### Variabilidad explicada por el modelo
+
+```{r}
+cor = cor(x2, y2)
+cd = cor^2
+cd
+```
+
+El modelo explica el 92.08% de la variabilidad. Se deduce que aproximadamente el 8% de las ventas no se relaciona con el tiempo. 
+
+#### Análisis de los residuos
+
+- Normalidad de los residuos
+
+```{r}
+shapiro.test(N2$residuals)
+qqnorm(N2$residuals)
+qqline(N2$residuals)
+hist(N2$residuals, freq=FALSE)
+lines(density(N2$residual), col="red")
+curve(dnorm(x, mean=mean(N2$residuals), sd=sd(N2$residuals)), add=TRUE, col="blue", lwd=2)
+```
+
+El p-value es mayor a alfa, así que nos quedamos con la hipótesis nula y podemos decir que los datos provienen de una normal, asi que los residuos $e_i$ también se distribuyen como una normal. 
+
+- Verificación de media cero
+
+```{r}
+t.test(N2$residuals)
+```
+
+El p-value es mayor a alfa, así que nos quedamos con la hipótesis nula y podemos decir que la media de los residuos no es significativamente diferente de cero. 
+
+Tenemos que $E(e_i)=0$
+
+- Homocedasticidad
+
+```{r}
+plot(N2$fitted.values, N2$residuals)
+abline(h=0, col="red")
+```
+
+Parece no existir homocedasticidad en los residuos ya que hay heterocedasticidad y sesgo, es decir, presenta asimetría. 
+
+## 4. Cálculo del CME y del EPAM de la predicción de la serie de tiempo
+
+```{r}
+p = NA
+e = NA
+er = NA
+
+for(i in 1:16){
+  p[i] = 5.1080 + 0.1474*i
+  e[i] = y2[i] - p[i]
+  er[i] = (abs(e[i])/y2[i])*100
+}
+T2 = data.frame(x2, p, y2, e^2, er)
+CME = mean(e^2, na.rm=TRUE)
+EPAM = mean(er, na.rm=TRUE)
+cat("CME = ", CME)
+cat("\nEPAM = ", EPAM)
+```
+
+## 5. Gráfico de los valores de las ventas y las predicciones vs el tiempo
+
+```{r}
+
+plot(x2, y2, type="o", col="red")
+lines(x2, p[x2], type="o", col="blue")
+```
+
+## 6. Conclusión sobre el modelo
+
+Gracias a las métricas utilizadas y a los análisis realizados se podría concluir que es un buen modelo, ya que se obtuvo un CME pequeño y el coeficiente de determinación indica un alto porcentaje de explicación, además de que en la mayoría de pruebas de validación de residuos se cumplió con los supuestos, sin embargo, en los tests de homocedasticidad no salió como lo esperado, es decir, presentó sesgo y heterocedasticidad en los residuos. Esto se puede deber a que el comportamiento no es del todo lineal, o hace falta considerar otro factor para explicar la variabilidad completa. Sería necesario hacer algunos ajustes o transformaciones para mejorar en ese sentido. 
+ 
+Por otro lado, se remarca la importancia de estas técnicas para el análisis de variables que varían con el tiempo, especialmente cuando se trata de casos parecidos al presentado en este trabajo como lo son el análisis de ventas o problemas de economía en general, ya que pueden ayudar al manejo de riesgos y toma de decisiones. Sin embargo, también es importante validar el modelo y recordar que lo que se obtendrá son sólo pronósticos que pueden no cumplirse debido a factores externos.
+
+## 7. Pronóstico para el siguiente año
+
+```{r}
+f = function(x) {5.1080 + 0.1474*x}
+# Los ídices estacionales son: 
+a1 = T$seasonal[1]
+a2 = T$seasonal[2]
+a3 = T$seasonal[3]
+a4 = T$seasonal[4];
+f(17)*a1*1000
+f(18)*a2*1000
+f(19)*a3*1000
+f(20)*a4*1000
+```
+
+Para este cálculo se estableció la función lineal obtenida anteriormente y se sacaron los índices estacionales de la matriz al hacer la descomposición (para así tomar en cuenta la estacionalidad), se multiplica por la función evaluada en el tiempo de cada trimestre y, para obtener las unidades correctas se multiplica por 1000. 

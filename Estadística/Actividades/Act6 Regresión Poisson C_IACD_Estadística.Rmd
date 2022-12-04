@@ -1,0 +1,91 @@
+---
+title: "Act6 Regresión Poisson C_IACD_Estadística"
+author: "A01750164 | Paul Martín García Morfín"
+date: "2022-11-11"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Regresión Poisson
+
+## Punto 1
+
+Trabajaremos con el paquete dataset, que incluye la base de datos warpbreaks, que contiene datos del hilo (yarn) para identificar cuáles variables predictoras afectan la ruptura de urdimbre.
+
+```{r}
+data = warpbreaks
+head(data,10)
+```
+
+Este conjunto de datos indica cuántas roturas de urdimbre ocurrieron para diferentes tipos de telares por telar, por longitud fija de hilo:
+
+- breaks: número de rupturas
+- wool: tipo de lana (A o B)
+- tension: el nivel de tensión (L, M, H)
+
+## Punto 2
+
+Analiza la base de datos:
+
+- Describe las variables y el número de datos. Describe los valores que toma y qué tipo de variable son.
+
+```{r}
+dim(data)
+library(dplyr);
+glimpse(data)
+```
+
+Finalmente, tenemos 3 variables con 54 observaciones, de las cuales hay:
+
+- 1 variable numérica (dbl): breaks (número de rupturas)
+- 2 variables categóricas (fct): wool (tipo de lana: A o B) y tension (nivel de tensión: L, M o H)
+
+- Obtén y analiza el histograma del número de rupturas
+
+```{r}
+hist(data$breaks)
+```
+
+Podemos observar que los valores más comúnes se encuentran entre 10 y 30 roturas de urdimbre. La dispersión de datos es de los 10 hasta los 70. Parece que los datos muestran una asimetría a la derecha, lo que es un indicio de que no están distribuidos normalmente. Parece que no hay valores atípicos. 
+
+- Obtén la media y la varianza del número de rupturas, ¿puedes decir que son iguales o diferentes?
+
+```{r}
+mean(data$breaks)
+var(data$breaks)
+```
+
+Podemos observar que la media y la varianza son diferentes. 
+
+## Punto 3
+
+Ajusta el modelo de regresión Poisson. Usa el mando: 
+
+```{r}
+poisson.model = glm(breaks ~ wool + tension, data, family = poisson(link = "log"))
+summary(poisson.model)
+```
+
+- Interpreta la información obtenida. Toma en cuenta que R genera variables Dummy para las variables categóricas. Para cada variable genera k-1 variables Dummy en k categorías (recuerda qué es una variable Dummy).
+
+La desviación residual es la difrencia entre lo que observas y lo que estimas a través del modelo. La variable dependiente es $breaks$, mientras que $wool$ y $tension$ son variables predictoras (se agregan las variables dummy debido a que $tension$ y $wool$ son categóricas). Se busca que la desviación residual sea menor a los grados de libertad, lo cual no ocurre en este caso ya que es mayor. Se comparan la media y la varianza de la variable $breaks$, pero no son iguales y el modelo obtenido es malo, ya que nos indica que hay una desviación excesiva (las varianzas no son iguales y la desviación residual es mucho mayor a los grados de libertad)
+
+La desviación nula es la que compara el modelo sin ningún predictor, únicamente con la media general. Tiene que ser mayor que la desviación residual porque ahí sí tenemos predictores (la desviación nula no los tiene) que nos expliquen la variación. 
+
+- La desviación residual debe ser menor que los grados de libertad para asegurarse que no exista una dispersión excesiva. Una diferencia mayor, significará que aunque las estimaciones son correctas, los errores estándar son incorrectos y el modelo no lo toma en cuenta.
+- La desviación excesiva nula muestra que tan bien se predice la variable de respuesta mediante un modelo que incluye solo el intercepto (gran media). Una diferencia en los valores significa un mal ajuste.
+- Si hay un mal modelo, recurre a usar un modelo cuasi Poisson, si los coeficientes son los mismos, el modelo es bueno:
+
+```{r}
+poisson.model2 = glm(breaks ~ wool + tension, data = data, family = quasipoisson(link = "log"))
+summary(poisson.model2)
+```
+
+Cuando la distribución de Poisson no es totalmente correcta, se usa el método de cuasi Poisson. Esto ocurre cuando la media y la varianza no son iguales y por lo tanto el modelo sobre estima o subestima la dispersión de los datos. Al comparar los modelos nos damos cuenta de que los coeficientes son los mismos entonces la conclusión final es que el modelo es bueno. 
+
+Nota: EL AIC no se puede comparar porque da NA en el seguno modelo, ya que no es posible calcularlo usando el método de quasipoisson (por algunas suposiciones que se hacen en éste). Se debe quitar uno de los predictores para poder calcularlo.  

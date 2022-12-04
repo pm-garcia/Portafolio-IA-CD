@@ -1,0 +1,135 @@
+---
+title: "Procesos Poisson"
+author: "A01750164 | Paul Martín García Morfín"
+date: "2022-10-24"
+output:
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Procesos Poisson
+
+Repasa los procesos Poisson en el tema 1 del Contenido 3. Distingue la diferencia entre el uso de las distribuciones Poisson, Exponencial y Gamma en los Procesos Poisson. Resuelve los dos problemas.
+
+## Drive Thru
+
+El tiempo de llegada a una ventanilla de toma de órdenes desde un automóvil de un cierto comercio de hamburguesas sigue un proceso de Poisson con un promedio de 12 llegadas por hora.
+
+$\lambda_0=12$
+
+A. ¿Cuál será la probabilidad de que el tiempo de espera de tres personas sea a lo más de 20 minutos? 
+
+P(t<=20/60)
+
+```{r}
+alfa = 3
+beta = 1/12
+
+p1 = pgamma(20/60, alfa, 1/beta)
+cat("P(t<=20/60) = ", p1)
+```
+
+B. ¿Cuál es la probabilidad de que el tiempo de espera de una persona esté entre 5 y 10 segundos?
+
+```{r}
+p1 = pexp(10/3600, 12) - pexp(5/3600, 12)
+cat("P(5/3600<=t<=10/3600) = ", p1)
+```
+
+C. ¿Cuál será la probabilidad de que en 15 minutos lleguen a lo más tres personas?
+
+```{r}
+p1 = ppois(3, 3)
+cat("P(x<=3) = ", p1)
+```
+
+D. ¿Cuál es la probabilidad de que el tiempo de espera de tres personas esté entre 5 y 10 segundos?
+
+```{r}
+alfa = 3
+beta = 1/12
+
+p1 = pgamma(10/3600, alfa, 1/beta) - pgamma(5/3600, alfa, 1/beta)
+cat("P = ", p1)
+```
+
+E. Determine la media y varianza del tiempo de espera de tres personas.
+
+```{r}
+alfa = 3
+beta = 1/12
+mu = alfa*beta
+var = sqrt(alfa*beta^2)
+
+cat("Media: ", mu)
+cat("\nVarianza: ", var)
+```
+
+F. ¿Cuál será la probabilidad de que el tiempo de espera de tres personas exceda una desviación estándar arriba de la media?
+
+```{r}
+alfa = 3
+beta = 1/12
+t = mu + var
+p1 = 1 - pgamma(t, alfa, 1/beta)
+
+cat("P(t>mu+sigma) = ", p1)
+```
+
+Respuestas: 0.7619, 0.0163, 0.6472, 0.00000525, 0.25, 0.1443, 0.1491
+
+## Entre partículas
+
+Una masa radioactiva emite partículas de acuerdo con un proceso de Poisson con una razón promedio de 15 partículas por minuto. En algún punto inicia el reloj.
+
+$\lambda_0=15$
+
+A. ¿Cuál es la probabilidad de que en los siguientes 3 minutos la masa radioactiva emita 30 partículas?
+
+```{r}
+x = 30
+
+p1 = dpois(x, 15*3)
+cat("P(x=30) = ", p1)
+```
+
+B. ¿Cuál es la probabilidad de que transcurran cinco segundos a lo más antes de la siguiente emisión?
+
+```{r}
+p1 = pexp(5/60, 15)
+cat("P(t<=5/60) = ", p1)
+```
+
+C. ¿Cuánto es la mediana del tiempo de espera de la siguiente emisión?
+
+```{r}
+med = qexp(0.5, 15)
+cat("Mediana: ", med)
+```
+
+D. ¿Cuál es la probabilidad de que transcurran a lo más cinco segundos antes de la segunda emisión?
+
+```{r}
+alfa = 2
+beta = 1/15
+
+p1 = pgamma(5/60, alfa, 1/beta)
+cat("P(t<=5/60) = ", p1)
+```
+
+E. ¿En que rango se encuentra el 50% del tiempo central que transcurre antes de la segunda emisión?
+
+```{r}
+alfa = 2
+beta = 1/15
+
+q1 = qgamma(0.25, alfa, 1/beta)
+q3 = qgamma(0.75, alfa, 1/beta)
+cat("El 50% del tiempo central está en el rango de ", q1, " y ", q3)
+```
+
+Respuesta: 0.004261, 0.7135, 0.462, 0.3554, entre 0.0641 y 0.1795

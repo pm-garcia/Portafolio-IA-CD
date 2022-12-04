@@ -1,0 +1,140 @@
+---
+title: "Act4 Componentes principales 2 C_IACD_Estadística"
+author: "A01750164 | Paul Martín García Morfín"
+date: "2022-10-18"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Componentes Principales
+
+## Parte I
+
+A partir de los datos sobre indicadores económicos y sociales de 96 países (paises_mundo.csv) hacer una análisis de Componentes Principales a partir de la  matriz de varianzas-covarianzas y otro a partir de la matriz de correlaciones, comparar los resultados y argumentar cuál es mejor según los resultados obtenidos.
+
+```{r}
+X = read.csv("D:/paulm/Documents/R/Scripts/Universidad/IA y ciencia de datos I I/Estadística/Data/paises_mundo.csv")
+```
+
+### Con matriz de varianzas-covarianzas
+
+1. Calcule la matriz de varianza-covarianza S
+
+```{r}
+S = cov(X)
+S
+```
+
+2. Calcule los valores y vectores propios de la matriz S
+
+```{r}
+LCov = eigen(S)
+LCov
+```
+
+3. Calcule la proporción de varianza explicada por cada componente. Se sugiere dividir cada lambda entre la varianza total. La varianza total es la suma de las varianzas de la diagonal de S. La varianza total de los componentes es la suma de los valores propios (es decir, la suma de la varianza de cada componente), sin embargo, si sumas la diagonal de S (es decir, la varianza de cada x), te da el mismo valor (¡comprúebalo!). Recuerda que las combinaciones lineales buscan reproducir la varianza de X.
+
+```{r}
+sum(LCov$values)
+sum(diag(S))
+
+var_total = sum(diag(S))
+prop_var = LCov$values/var_total
+prop_var
+```
+
+4. Acumule los resultados anteriores.
+
+```{r}
+prop_varianza_acum = cumsum(prop_var)
+cumsum(prop_var)
+```
+5. Según los resultados anteriores, ¿qué componentes son los más importantes? ¿qué variables son las que más contribuyen a la primera y segunda componentes principales? ¿por qué lo dice? ¿influyen las unidades de las variables?
+
+En este caso, la primera componente explica el 90.34% de la varianza observada en los datos y la segunda el 9.64%, por lo que serían las más significativas. Las últimas nueve componentes no superan el 0.02% de la varianza explicada. Si se empleasen únicamente las dos primeras componentes se conseguiría explicar el 99.98% de la varianza observada. PNB95 y ProdElec parecen tener el mayor peso en la primera  y segunda componente. Puede que haya una afectación de los pesos debido a las unidades de las variables al no estar escaladas.  
+
+### Con matriz de correlaciones
+
+6. Hacer los mismos pasos anteriores, pero con la matriz de correlaciones R
+
+```{r}
+R = cor(X)
+LCor = eigen(R)
+LCor
+
+sum(LCor$values)
+sum(diag(R))
+
+var_total = sum(diag(R))
+prop_var = LCor$values/var_total
+prop_var
+
+prop_varianza_acum = cumsum(prop_var)
+cumsum(prop_var)
+```
+
+En este caso, la primera componente explica el 36.63% de la varianza observada en los datos, la segunda el 17.54%, la tercera el 12.45%, la cuarta 7.85%, etc. Si se empleasen las dos primeras componentes se conseguiría explicar sólo el 54.17% de la varianza observada. LinTelf, ConsEner y MortInf parecen tener el mayor peso en la primera componente, por otro lado, PorcMujeres, PropBosq y CrecPobl son las que tienen más peso en la segunda componente (Su correlación es mayor en valor absoluto). En este caso parece que las variables fueron escaladas para tener una varinza unitaria. 
+
+### Comparación y argumentación
+
+7. Compare los resultados obtenidos a partir de cada matriz. ¿qué concluye?
+
+Con la matriz de varianza-covarianza, el análisis de las variables se hace sin un escalado, logramos un mayor porcentaje de la varianza explicada con menos componentes empleadas. Por el otro lado, con la matriz de correlación, las variables parecen estar escaladas para tener una varianza unitaria, sin embargo, se necesitó usar más componentes para un mayor porcentaje de explicación de la varianza.
+Parece es mejor utilizar la matriz de correlación para resultados más óptimos. 
+
+## Parte II
+
+Obtenga las gráficas de respectivas con S (matriz de varianzas-covarianzas) y con R (matriz de correlaciones) de las dos primeras componentes e interprete los resultados en término de agrupación de variables (puede ayudar "índice de riqueza", "índice de ruralidad")
+
+### Con matriz de varianzas-covarianzas
+
+```{r}
+library(stats)
+library(ggplot2)
+cpS = princomp(X, cor=FALSE)
+cpaS = as.matrix(X)%*%cpS$loadings
+plot(cpaS[,1:2], type="p", main="Con matriz de varianzas-covarianza")
+text(cpaS[,1], cpaS[,2], 1:nrow(cpaS))
+biplot(cpS)
+```
+
+Se muestra una proyección bidimensional de los datos en las dos primeras componentes, donde se puede observar las variables con mayor peso, en este caso NB95 y ProdElec.  
+
+### Con matriz de correlaciones
+
+```{r}
+library(stats)
+library(ggplot2)
+cpS = princomp(X, cor=TRUE)
+cpaS = as.matrix(X)%*%cpS$loadings
+plot(cpaS[,1:2], type="p", main="Con matriz de correlación")
+text(cpaS[,1], cpaS[,2], 1:nrow(cpaS))
+biplot(cpS)
+```
+
+Se muestra una proyección bidimensional de los datos en las dos primeras componentes, donde se puede observar las variables con mayor peso, en este caso parece ser ProcMujeres, LinTelf, ConsEner, PropBosq y CrecPobl.
+
+## Parte II
+
+Explore los siguientes gráficos relativos al problema y Componentes Principales y dé una interpretación de cada gráfico.
+
+```{r}
+library(FactoMineR)
+library(factoextra)
+library(ggplot2) 
+cp3 = PCA(X)
+fviz_pca_ind(cp3, col.ind="blue", addEllipses=TRUE, repel=TRUE)
+fviz_screeplot(cp3)
+fviz_contrib(cp3, choice=c("var"))
+```
+
+- La primera gráfica nos permite resumir y visualizar la información de las observaciones descritas por las variables cuantitativas interrelacionadas del conjuto de datos.
+- En la segunda gráfica se muestran los vectores y cómo están fijados en el origen de las principales componentes. Sus valores de proyección indcan el peso que tienen en esa componente.
+- La tercer gráfica muestra las componentes principales Dim1 y Dim2 de un vector aleatorio, se visualizan los individuos. La forma de la gráfica indica que componentes principales están bien determinados y se observa la máxima varianza.
+- En la cuarta gráfica las componentes principales se presentan en orden de la cantidad de variación que explican. 
+- Finalmente, en la quinta gráfica, se muestra el porcentaje del peso de las variables en el primera componente. 

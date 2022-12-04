@@ -1,0 +1,158 @@
+---
+title: "Act2 Matrices y vectores aleatorios C_IACD_Estadística"
+author: "A01750164 | Paul Martín García Morfín"
+date: "2022-10-04"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Matrices y vectores aleatorios
+
+## Punto 1.
+
+Considere la matriz de datos siguiente:  $X=\begin{equation}\begin{bmatrix} 1 & 4 & 3 \\ 6 & 2 & 6 \\ 8 & 3 & 3 \end{bmatrix}\end{equation}$ que consta de 3 observaciones (filas) y 3 variables (columnas)
+
+$b'X=\begin{bmatrix} 1 & 1 & 1 \end{bmatrix} \begin{bmatrix} X_1 \\ X_2 \\ X_3 \end{bmatrix} = X_1+X_2+X_3$         
+
+$c'X=\begin{bmatrix} 1 & 2 & -3 \end{bmatrix} \begin{bmatrix} X_1 \\ X_2 \\ X_3 \end{bmatrix} = X_1+2X_2-3X_3$
+
+```{r}
+X = matrix(c(1, 6, 8, 4, 2, 3, 3, 6, 3), ncol=3)
+b = matrix(c(1, 1, 1), ncol=1)
+c = matrix(c(1, 2, -3), ncol=1)
+tbX = t(b)%*%t(X)
+tcX = t(c)%*%t(X)
+```
+
+### a) Hallar la media, varianza y covarianza de b'X y c'X
+
+```{r}
+M = matrix(c(tbX, tcX), ncol=2)
+M = as.data.frame(M)
+names(M) = c("b'X", "c'X")
+n = 2
+d = matrix(NA, ncol=2, nrow=n)
+for(i in 1:n){
+  d[i, ] = c(mean(M[, i]), var(M[, i]))
+}
+m = as.data.frame(d)
+row.names(m) = c("b'X", "c'X")
+names(m) = c("Media", "Varianza")
+m
+cov(M) # Matriz de varianza - covarianza
+```
+
+### b) Hallar el determinante de S (matriz de var-covarianzas de X)
+
+```{r}
+det(cov(X))
+```
+
+### c) Hallar la matriz de varianzas-covarianzas (o porqué no se puede hallar)
+
+```{r}
+S = cov(X)
+S
+```
+
+### c) Hallar los valores y vectores propios de S
+
+```{r}
+eigen(S)
+```
+
+### d) Argumentar si  b'X y c'X son independientes o no 
+
+```{r}
+cor(M)
+```
+Las variables tienen una baja correlación negativa, por otro lado, $s_{ik}\neq0$ y $r_{ik}\neq0$, así que no son independientes. 
+
+### e) Hallar la varianza generalizada. Explicar  el comportamiento de los datos de X basándose en los la variable generalizada, en los valores y vectores propios. 
+
+La varianza generalizada es el determinante de la matriz de varianzas y covarianzas S, para este caso, dicho valor es 0. Como propiedades tiene que: 
+
+- Está bien definida, ya que el determinante de la matriz S es igual que 0.
+- Es una medida del volumen (k = 3) ocupado por el conjunto de datos.
+
+```{r}
+cor(X)
+```
+Las variables están relacionadas linealmente y el coeficiente de correlación es distinto de 0, así que el volumen ocupado se reduce debido a la presencia de correlación. 
+
+## Punto 2. 
+
+Explore los resultados del siguiente código y dé una interpretación (se sugiere intersertarlo en un trozo de R en Rmarkdown para que dé varias ventanas de salida de resutados): 
+
+```{r}
+library(MVN)
+x = rnorm(100, 10, 2)
+y = rnorm(100, 10, 2)
+datos = data.frame(x, y)
+mvn(datos, mvnTest = "hz", multivariatePlot = "persp")
+mvn(datos, mvnTest = "hz", multivariatePlot = "contour")
+```
+
+Se usa la prueba de Henze-Zirkler, la cual está basada en la distancia funcional no negativa, es decir, mide la distancia entre dos funciones de distribución. Si los datos presentan una distribución normal multivariada, la prueba estadística se distribuye aproximadamente como una lognormal.
+En este caso se cumple con normalidad multivariante ya que el p-value > 0.05. 
+
+El estadístico Anderson-Darling mide qué tan bien siguen los datos una distribución específica. En este caso se evalua normalidad. En esta prueba se tiene un p-value > 0.05, así que se acepta H (normalidad para X y para Y).
+
+Se tiene un bajo sesgo para ambas variables (hay simetría), además, por los valores de curtosis podemos decir que tiene una forma mesocúrtica.  
+
+## Punto 3.
+
+Un periódico matutino enumera los siguientes precios de autos usados para un compacto extranjero con edad medida en años y precio en venta medido en miles de dólares. 
+
+x1: 1, 2, 3, 3, 4, 5, 6, 8, 9, 11
+
+x2: 18.95, 19.00, 17.95, 15.54, 14.00, 12.95, 8.94, 7.49, 6.00, 3.99
+
+### a) Construya un diagrama de dispersión 
+
+```{r}
+x1 = c(1, 2, 3, 3, 4, 5, 6, 8, 9, 11)
+x2 = c(18.95, 19.00, 17.95, 15.54, 14.00, 12.95, 8.94, 7.49, 6.00, 3.99) 
+plot(x=x1, y=x2,  main = "Precios de autos usados", xlab = "Edad medida (años)", ylab = "Precio en venta (dólares)")
+```
+
+### b) Inferir el signo de la covarianza muestral a partir del gráfico.
+
+Por la pendiente que se forma en los datos, la covarianza tendrá un signo negativo. 
+
+```{r}
+datos = data.frame(x1, x2)
+S = cov(datos)
+S
+```
+### c) Calcular el cuadrado de las distancias estadísticas 
+
+$(x_j-\bar{x})'S^{-1}(x_j-\bar{x})$ con $x'_j=[x_{j1},x_{j2}]$. Nota: para el cálculo de la distancia de Mahalanobis, usa: mahalanobis(A,medias,S).
+
+```{r}
+medias = colMeans(datos)
+d2M = mahalanobis(datos, medias, S)
+d2M
+```
+
+### d) Usando las anteriores distancias, determine la proporción de las observaciones que caen dentro del contorno de probabilidad estimado del 50% de una distribución normal bivariada. 
+
+```{r}
+length(d2M[d2M <= qchisq(0.5, df=2)])/length(d2M)
+```
+
+### e) Ordene las distancias del inciso c y construya un diagrama chi-cuadrado
+
+```{r}
+plot(qchisq(((1:nrow(datos))-1/2)/nrow(datos), df=2), sort(d2M), xlab="", ylab="Distancias", main="Diagrama chi-cuadrado")
+abline(a=0, b=1, col="red")
+```
+
+### f) Dados los resultados anteriores, ¿serían argumentos para decir que los datos son aproximadamente normales bivariados?
+
+Se podrían obtener algunas conclusiones preeliminares, sin embargo, considero que haría falta hacer las pruebas de normalidad, con cálculos de probabilidad y contornos de densidad para llegar a una conclusión más acertada acerca de la normalidad bivariada. 

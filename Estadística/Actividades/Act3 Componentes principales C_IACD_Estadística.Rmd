@@ -1,0 +1,108 @@
+---
+title: "Act3 Componentes principales C_IACD_Estadística"
+author: "A01750164 | Paul Martín García Morfín"
+date: "2022-10-11"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Componentes principales
+
+## Parte A
+
+De los siguientes datos:
+
+- x1:  2.5, 0.5, 2.2, 1.9, 3.1, 2.3, 2, 1, 1.5, 1.1
+- x2:  2.4, 0.7, 2.9, 2.2, 3.0, 2.7, 1.6, 1.1, 1.6, 0.9
+
+### 1. Obtenga una matriz de datos centrados en sus medias.
+
+```{r}
+x1 = c(2.5, 0.5, 2.2, 1.9, 3.1, 2.3, 2, 1, 1.5, 1.1)
+x2 = c(2.4, 0.7, 2.9, 2.2, 3.0, 2.7, 1.6, 1.1, 1.6, 0.9)
+M = data.frame(x1, x2)
+M = as.matrix(M)
+H = diag(nrow(M))-(1/nrow(M)) * matrix(1, nrow(M), nrow(M))
+MCen = H %*% M
+MCen
+```
+
+### 2. Obtenga la matriz de varianza-covarianza de la matriz de datos centrados
+
+```{r}
+MCov = cov(MCen)
+MCov
+```
+
+### 3. Obtenga los valores propios y vectores propios de la matriz de varianza-covarianza de la matriz de datos centrados.
+
+```{r}
+L = eigen(MCov)
+L
+```
+
+### 4. Obtenga las matrices transpuestas de los vectores propios y la traspuesta de la matriz de datos centrados.
+
+```{r}
+t_Vprop = t(L$vectors)
+t_MCen = t(MCen)
+cat("Matriz transpuesta de los vectores propios:\n")
+t_Vprop
+cat("\nMatriz transpuesta de la matriz de datos centrados:\n")
+t_MCen
+```
+
+### 5. Multiplique la matriz transpuesta de los vectores propios con la transpuesta de la matriz de datos centrados.
+
+```{r}
+CP = t_Vprop%*%t_MCen
+rownames(CP) = c("CP1", "CP2")
+t(CP)
+```
+
+### 6. Interprete los resultados.
+
+Al final obtenemos los datos por sustituidos en la combinación lineal de vectores propios, o sea, el valor de los datos rotados (los datos centrados, en este caso sin escalar, multiplicados por la matriz cuyas columnas contienen los vectores propios)
+
+## Parte B
+
+### Aplique a los mismos datos las fórmulas de R para Componentes principales e interpreta resultados.
+
+```{r}
+cpa = prcomp(M, scale=TRUE)
+names(cpa)
+```
+Se realiza un análisis de componentes principales en la matriz de datos M (contiene los vectores dados al inicio) y se indica que las variables deben estar escaladas antes de realizar el análisis. 
+
+```{r}
+cat("Desviaciones estándar:\n")
+cpa$sdev
+cat("\nMedias.\n")
+cat("Center y scale dan las medias y desv estándar previa estandarización:\n")
+cpa$center
+cat("\n")
+cpa$scale
+cat("\nLos coeficientes de la combinación lineal normalizada de componete:\n")
+cpa$rotation
+cat("\nLos datos por sustituidos en la combinación lineal de vectores propios:\n")
+cpa$x
+```
+Obtenemos las desviaciones estándar de los componentes principales (es decir, las raíces cuadradas de los valores propios de la matriz de covarianza), el centrado y la escala utilizados, una matriz cuyas columnas contienen los vectores propios y, finalmente, el valor de los datos rotados (los datos centrados y escalados multiplicados por la matriz de rotación)
+
+```{r}
+biplot(x=cpa, scale=0, cex=0.6, col=c("red", "blue"))
+barplot(cpa$sdev^2, col=c("red", "blue"))
+```
+
+En el biplot se representan tanto las observaciones como las variables de la matriz de datos multivariados en el mismo gráfico.
+
+```{r}
+summary(cpa)
+```
+Hacer un análisis de componentes principales es una técnica útil para el análisis exploratorio de datos, que permite visualizar mejor la variación presente en un conjunto de datos con muchas variables. 
